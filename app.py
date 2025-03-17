@@ -1,10 +1,11 @@
 # Import required libraries
-import random
+import dash
+from dash import dcc, html, Input, Output
+import plotly.graph_objs as go
 import numpy as np
+import random
 from mesa import Agent, Model
 from mesa.datacollection import DataCollector
-from dash import Dash, dcc, html, Input, Output
-import plotly.graph_objs as go
 
 # --- Define Agents and Model ---
 class IBDAgent(Agent):
@@ -24,10 +25,7 @@ class IBDModel(Model):
         self.current_timepoint = 1
         
         # Create agents
-        self.agents = []
-        for i in range(self.num_agents):
-            agent = IBDAgent(i, self)
-            self.agents.append(agent)
+        self.agents = [IBDAgent(i, self) for i in range(self.num_agents)]
         
         # Data collector for tracking agent achievements
         self.datacollector = DataCollector(
@@ -39,12 +37,10 @@ class IBDModel(Model):
             for agent in self.agents:
                 agent.session_duration = self.durations[self.current_timepoint - 1]
         
-        # Activate agents manually (replacing RandomActivation)
-        random.shuffle(self.agents)  # Shuffle agents to mimic randomness
+        random.shuffle(self.agents)
         for agent in self.agents:
             agent.step()
         
-        # Collect data and increment timepoint
         self.datacollector.collect(self)
         self.current_timepoint += 1
 
@@ -62,10 +58,9 @@ class IBDModel(Model):
 # --- Generate Plots ---
 def generate_plot(durations):
     model = IBDModel(50, durations)
-    for _ in range(len(durations)):  # Run the model through all timepoints
+    for _ in range(len(durations)):
         model.step()
     
-    # Collect data for plotting
     agent_data = model.datacollector.get_agent_vars_dataframe()
     timepoints = list(range(1, len(durations) + 1))
     avg_achievements = [float(agent_data.xs(t, level="Step")["Achievement"].mean()) for t in timepoints]
@@ -79,7 +74,7 @@ def generate_plot(durations):
     return fig
 
 # --- Dash App Setup ---
-app = Dash(__name__)
+app = dash.Dash(__name__)
 server = app.server  # For deployment on Render
 
 app.layout = html.Div([
