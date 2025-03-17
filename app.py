@@ -16,11 +16,12 @@ class MyAgent(Agent):
         self.T1Depression = random.randint(40, 90)
         self.CSQ8 = random.randint(18, 32)
         self.ChngDepression = random.randint(-17, 35)
+        self.anxiety_change = random.randint(-30, 50)
 
     def step(self):
         pass
 
-# --- Moderation Effect Calculation ---
+# --- CSQ8 Moderation Effect Calculation ---
 def calculate_depression_change(csq8, baseline_depression):
     normalized_baseline = (baseline_depression - 44) / (60 - 44)
     if baseline_depression <= 44:
@@ -32,7 +33,7 @@ def calculate_depression_change(csq8, baseline_depression):
     change = effect * (csq8 - 25)
     return change + np.random.normal(0, 2)
 
-# --- Generate Plots ---
+# --- Generate Depression Change Plots ---
 def generate_plots(csq8_influence, baseline_depression_influence):
     num_agents = 50
     csq8_values_clustered = [max(18, min(32, int(np.random.normal(csq8_influence, 2)))) for _ in range(num_agents)]
@@ -80,6 +81,39 @@ def generate_plots(csq8_influence, baseline_depression_influence):
                        yaxis_range=[-40, 10])
 
     return fig1, fig2, fig3
+
+# --- Generate Anxiety Plot ---
+def generate_anxiety_plot(attendance_influence):
+    model = run_model()
+    
+    csq8_values = [agent.CSQ8 for agent in model.agents]
+    anxiety_change_values = [agent.anxiety_change for agent in model.agents]
+
+    # Apply the moderation effect of attendance
+    moderated_anxiety_change = []
+    for csq8, anxiety_change in zip(csq8_values, anxiety_change_values):
+        if attendance_influence <= 4:
+            effect = -3.2783
+        else:
+            effect = -3.2783 + (attendance_influence - 4) * 0.5
+        moderated_change = effect * (csq8 - 25) + anxiety_change
+        moderated_anxiety_change.append(moderated_change)
+
+    fig = go.Figure(data=go.Scatter(
+        x=csq8_values,
+        y=moderated_anxiety_change,
+        mode='markers',
+        marker=dict(opacity=0.7, size=10)
+    ))
+    fig.update_layout(
+        title=f'Moderation Effect of Attendance ({attendance_influence} Sessions) on Anxiety Change',
+        xaxis_title='CSQ8 Score',
+        yaxis_title='Anxiety Change',
+        xaxis_range=[17, 33],
+        yaxis_range=[-40, 60]
+    )
+
+    return fig
 
 # --- Generate IBD Plot ---
 def generate_ibd_plot(durations):
@@ -201,6 +235,15 @@ app.layout = html.Div([
                 dcc.Graph(id='plot3', style={'display': 'inline-block', 'width': '33%'})
             ])
         ]),
+        # Anxiety Model Tab
+        dcc.Tab(label='Anxiety Model', children=[
+            html.H1("Agent-Based Model for Anxiety"),
+
+            html.Label("Attendance (Number of Sessions)"),
+            dcc.Slider(id='attendance-slider', min=1, max=10, step=1, value=4),
+
+            dcc.Graph(id='anxiety-plot', style={'width': '60%', 'margin': 'auto'})
+]),
 
         # IBD Model Tab
         dcc.Tab(label='IBD Model', children=[
@@ -217,8 +260,8 @@ app.layout = html.Div([
                 # Right column for plots
                 html.Div([
                     dcc.Graph(id='ibd-plot'),
-                    dcc.Graph(id='depression-plot'),
-                    dcc.Graph(id='anxiety-plot')
+                    dcc.Graph(id='Achievement-depression-plot'),
+                    dcc.Graph(id='Achievement-anxiety-plot')
                 ], style={'width': '60%', 'display': 'inline-block'})
             ])
         ])
@@ -236,7 +279,13 @@ app.layout = html.Div([
 def update_graph(csq8_influence, baseline_depression_influence):
     fig1, fig2, fig3 = generate_plots(csq8_influence, baseline_depression_influence)
     return fig1, fig2, fig3
-
+@app.callback(
+    Output('anxiety-plot', 'figure'),
+    Input('attendance-slider', 'value')
+)
+def update_anxiety_graph(attendance_influence):
+    fig = generate_anxiety_plot(attendance_influence)
+    return fig
 
 @app.callback(
     [Output('ibd-plot', 'figure'),
