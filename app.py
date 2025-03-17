@@ -165,12 +165,12 @@ app.layout = html.Div([
 def update_graph(csq8_influence, baseline_depression_influence):
     fig1, fig2, fig3 = generate_plots(csq8_influence, baseline_depression_influence)
     return fig1, fig2, fig3
-
 @app.callback(
     Output('ibd-plot', 'figure'),
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
+    print(f"Intervals received: {intervals}")  # Debug print
     durations = list(intervals)
     
     model = IBDModel(50, durations)
@@ -182,10 +182,16 @@ def update_ibd_graph(*intervals):
     
     timepoints = list(range(1, 7))
     
-    average_achievements = [
-        agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
-        for timestep_idx in timepoints
-    ]
+    average_achievements = []
+    for timestep_idx in timepoints:
+        try:
+            achievement = agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
+            average_achievements.append(achievement)
+        except KeyError:
+            print(f"No data for timestep {timestep_idx}")
+            average_achievements.append(0)  # or some default value
+    
+    print(f"Average achievements: {average_achievements}")  # Debug print
     
     fig = go.Figure(data=[
         go.Scatter(
@@ -199,7 +205,7 @@ def update_ibd_graph(*intervals):
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
-        yaxis_range=[0, 350]
+        yaxis_range=[0, max(average_achievements) * 1.1 if average_achievements else 350]
     )
     
     return fig
