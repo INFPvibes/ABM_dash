@@ -16,10 +16,38 @@ class MyAgent(Agent):
         self.T1Depression = random.randint(40, 90)
         self.CSQ8 = random.randint(18, 32)
         self.ChngDepression = random.randint(-17, 35)
+        
+        # Attributes for Anxiety Model
         self.anxiety_change = random.randint(-30, 50)
+
+        # Attributes for IBD Model
+        self.achievement = 0
+        self.session_durations = [random.randint(70, 800) for _ in range(5)]
 
     def step(self):
         pass
+
+class UnifiedModel(Model):
+    def __init__(self, N, width, height):
+        self.num_agents = N
+        self.grid = MultiGrid(width, height, True)
+        self.agents = []
+        for i in range(self.num_agents):
+            a = MyAgent(i, self)
+            self.agents.append(a)
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            self.grid.place_agent(a, (x, y))
+
+    def step(self):
+        for agent in self.agents:
+            agent.step()
+
+def run_model(N=50, width=10, height=10, steps=100):
+    model = UnifiedModel(N, width, height)
+    for _ in range(steps):
+        model.step()
+    return model
 
 # --- CSQ8 Moderation Effect Calculation ---
 def calculate_depression_change(csq8, baseline_depression):
@@ -117,6 +145,9 @@ def generate_anxiety_plot(attendance_influence):
 
 # --- Generate IBD Plot ---
 def generate_ibd_plot(durations):
+    """
+    Generate the IBD plot using the unified agent structure.
+    """
     num_timepoints = 6
     achievements = []
     cumulative_effect = 0
@@ -154,7 +185,7 @@ def generate_ibd_plot(durations):
         achievements.append(cumulative_effect)
 
     fixed_y_min = 0
-    fixed_y_max = 500
+    fixed_y_max = max(achievements) * 1.1
 
     fig = go.Figure(data=[
         go.Scatter(
@@ -165,9 +196,9 @@ def generate_ibd_plot(durations):
     ])
 
     fig.update_layout(
-        title='Average Achievement Over Time',
+        title='Cumulative Achievement Over Time',
         xaxis_title='Timepoint',
-        yaxis_title='Average Achievement Score',
+        yaxis_title='Cumulative Achievement Score',
         yaxis=dict(range=[fixed_y_min, fixed_y_max])
     )
 
@@ -238,13 +269,10 @@ app.layout = html.Div([
         # Anxiety Model Tab
         dcc.Tab(label='Anxiety Model', children=[
             html.H1("Agent-Based Model for Anxiety"),
-
             html.Label("Attendance (Number of Sessions)"),
             dcc.Slider(id='attendance-slider', min=1, max=10, step=1, value=4),
-
             dcc.Graph(id='anxiety-plot', style={'width': '60%', 'margin': 'auto'})
-]),
-
+        ]),
         # IBD Model Tab
         dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
@@ -256,7 +284,6 @@ app.layout = html.Div([
                         dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=20, value=400)
                     ]) for i in range(5)
                 ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}),
-
                 # Right column for plots
                 html.Div([
                     dcc.Graph(id='ibd-plot'),
@@ -268,7 +295,6 @@ app.layout = html.Div([
     ])
 ])
 
-
 @app.callback(
     [Output('plot1', 'figure'),
      Output('plot2', 'figure'),
@@ -279,6 +305,7 @@ app.layout = html.Div([
 def update_graph(csq8_influence, baseline_depression_influence):
     fig1, fig2, fig3 = generate_plots(csq8_influence, baseline_depression_influence)
     return fig1, fig2, fig3
+
 @app.callback(
     Output('anxiety-plot', 'figure'),
     Input('attendance-slider', 'value')
@@ -289,8 +316,8 @@ def update_anxiety_graph(attendance_influence):
 
 @app.callback(
     [Output('ibd-plot', 'figure'),
-     Output('depression-plot', 'figure'),
-     Output('anxiety-plot', 'figure')],
+     Output('Achievement-depression-plot', 'figure'),
+     Output('Achievement-anxiety-plot', 'figure')],
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
