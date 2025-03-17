@@ -88,6 +88,10 @@ def generate_ibd_plot(durations):
     achievement = 0
 
     for timepoint in range(1, num_timepoints + 1):
+        # Adjusted index handling for durations
+        duration_idx = min(timepoint - 1, len(durations) - 1)  # Ensures we never exceed the last duration
+        session_duration = durations[duration_idx]
+
         if timepoint < 3:
             b_x = 0.1294
         elif timepoint < 5:
@@ -96,7 +100,6 @@ def generate_ibd_plot(durations):
             b_x = 0.4476
 
         z_strength = timepoint * 0.07955
-        session_duration = durations[timepoint-1] if timepoint <= len(durations) else 0
         achievement_change = session_duration * b_x * z_strength
         achievement += achievement_change
         average_achievements.append(achievement)
@@ -117,6 +120,7 @@ def generate_ibd_plot(durations):
     )
 
     return fig
+
 
 # --- Dash App ---
 app = dash.Dash(__name__)
