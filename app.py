@@ -168,10 +168,11 @@ def generate_anxiety_plot(average_achievement):
     return fig
 # --- Dash App ---
 app = dash.Dash(__name__)
-server = app.server # For deployment
+server = app.server  # For deployment
 
 app.layout = html.Div([
     dcc.Tabs([
+        # Depression Model Tab
         dcc.Tab(label='Depression Model', children=[
             html.H1("Agent-Based Model for Depression"),
             html.Label("CSQ8 Influence"),
@@ -184,7 +185,9 @@ app.layout = html.Div([
                 dcc.Graph(id='plot3', style={'display': 'inline-block', 'width': '33%'})
             ])
         ]),
-   dcc.Tab(label='IBD Model', children=[
+
+        # IBD Model Tab
+        dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
             html.Div([
                 # Left column for sliders
@@ -194,16 +197,18 @@ app.layout = html.Div([
                         dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
                     ]) for i in range(5)
                 ], style={'width': '30%', 'display': 'inline-block', 'vertical-align': 'top'}),
-                
+
                 # Right column for plots
                 html.Div([
                     dcc.Graph(id='ibd-plot'),
                     dcc.Graph(id='depression-plot'),
                     dcc.Graph(id='anxiety-plot')
                 ], style={'width': '70%', 'display': 'inline-block'})
+            ])
         ])
     ])
 ])
+
 
 @app.callback(
     [Output('plot1', 'figure'),
