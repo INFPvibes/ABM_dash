@@ -24,10 +24,10 @@ class IBDModel(Model):
         self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
-        
+
         for i in range(self.num_agents):
             self.schedule.append(IBDAgent(i, self))
-        
+
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
         )
@@ -148,7 +148,7 @@ server = app.server
 
 app.layout = html.Div([
     html.H1("Mental Health Intervention ABM Dashboard"),
-    
+
     html.Div([
         html.H2("Depression Model"),
         html.Label("CSQ8 Influence"),
@@ -161,7 +161,7 @@ app.layout = html.Div([
             dcc.Graph(id='plot3', style={'display': 'inline-block', 'width': '33%'})
         ])
     ]),
-    
+
     html.Div([
         html.H2("IBD Achievement Model"),
         html.Div([
@@ -169,7 +169,7 @@ app.layout = html.Div([
             dcc.Slider(id=f'interval-{i+1}', min=70, max=800, value=400, step=1)
         ] for i in range(5)),
         dcc.Graph(id='achievement-plot')
-    ])
+    ]),
 ])
 
 @app.callback(
@@ -191,11 +191,11 @@ def update_achievement_plot(interval1, interval2, interval3, interval4, interval
     model = IBDModel(50, durations)
     for _ in range(6):
         model.step()
-    
+
     agent_data = model.datacollector.get_agent_vars_dataframe()
     timepoints = range(1, 7)
-    average_achievements = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
-    
+    average_achievements = list([agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints])
+
     fig = go.Figure(data=go.Scatter(x=list(timepoints), y=average_achievements, mode='lines+markers'))
     fig.update_layout(
         title='Average Achievement Over Time',
@@ -205,7 +205,7 @@ def update_achievement_plot(interval1, interval2, interval3, interval4, interval
     )
     return fig
 
-@app.server.route('/health')  # Health Check
+@app.server.route('/health')
 def health_check():
     return "OK", 200
 
