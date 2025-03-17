@@ -84,11 +84,13 @@ def generate_plots(csq8_influence, baseline_depression_influence):
 # --- Generate IBD Plot ---
 def generate_ibd_plot(durations):
     num_timepoints = 6
-    average_achievements = []
-    achievement = 0
+    achievements = []
+    cumulative_effect = 0
+    momentum = 0
+    decay_factor = 0.8  # How much previous achievement carries over if no new sessions
 
     for timepoint in range(1, num_timepoints + 1):
-        duration_idx = min(timepoint - 1, len(durations) - 1)  # Clamp to last duration if needed
+        duration_idx = min(timepoint - 1, len(durations) - 1)
         session_duration = durations[duration_idx]
 
         if timepoint < 3:
@@ -99,17 +101,31 @@ def generate_ibd_plot(durations):
             b_x = 0.4476
 
         z_strength = timepoint * 0.07955
-        achievement_change = session_duration * b_x * z_strength
-        achievement += achievement_change
-        average_achievements.append(achievement)
+
+        # Calculate new achievement gain
+        new_achievement = session_duration * b_x * z_strength
+
+        # Update momentum (increases with consistent use, decreases with inactivity)
+        if session_duration > 0:
+            momentum = min(momentum + 0.1, 1.0)  # Cap momentum at 1.0
+        else:
+            momentum = max(momentum - 0.2, 0)  # Momentum decreases faster than it builds
+
+        # Apply momentum to new achievement
+        new_achievement *= (1 + momentum)
+
+        # Add new achievement to cumulative effect
+        cumulative_effect = (cumulative_effect * decay_factor) + new_achievement
+
+        achievements.append(cumulative_effect)
 
     fixed_y_min = 0
-    fixed_y_max = 500
+    fixed_y_max = max(achievements) * 1.1  # Adjust the max y-axis based on data
 
     fig = go.Figure(data=[
         go.Scatter(
             x=list(range(1, num_timepoints + 1)),
-            y=average_achievements,
+            y=achievements,
             mode='lines+markers'
         )
     ])
