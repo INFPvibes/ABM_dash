@@ -5,7 +5,6 @@ import plotly.graph_objs as go
 import numpy as np
 import random
 from mesa import Agent, Model
-from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 from mesa.space import MultiGrid
 
@@ -26,17 +25,19 @@ class DepressionModel(Model):
         super().__init__()
         self.num_agents = N
         self.grid = MultiGrid(width, height, True)
-        self.schedule = RandomActivation(self)
-        
+        self.schedule = list() # changed to list to keep track of agents in model
+
         for i in range(self.num_agents):
             a = DepressionAgent(i, self)
-            self.schedule.add(a)
+            self.schedule.append(a) # add to list to keep track of agents
             x = self.random.randrange(self.grid.width)
             y = self.random.randrange(self.grid.height)
             self.grid.place_agent(a, (x, y))
 
     def step(self):
-        self.schedule.step()
+        random.shuffle(self.schedule) # shuffle the schedule to 'randomly activate'
+        for agent in self.schedule:
+            agent.step()
 
 # --- Define New IBD Achievement Model ---
 class IBDAgent(Agent):
@@ -50,23 +51,27 @@ class IBDAgent(Agent):
 
 class IBDModel(Model):
     def __init__(self, N, durations):
+        super().__init__() # added super().__init__() to fix potential bug
         self.num_agents = N
-        self.schedule = RandomActivation(self)
+        self.schedule = list() # changed to list to keep track of agents in model
         self.current_timepoint = 1
         self.durations = durations
-        
+
         for i in range(self.num_agents):
-            self.schedule.add(IBDAgent(i, self))
-        
+            a = IBDAgent(i, self)
+            self.schedule.append(a) # add to list to keep track of agents
+
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
         )
 
     def step(self):
         if self.current_timepoint <= 5:
-            for agent in self.schedule.agents:
+            random.shuffle(self.schedule) # shuffle the schedule to 'randomly activate'
+            for agent in self.schedule:
                 agent.session_duration = self.durations[self.current_timepoint - 1]
-        self.schedule.step()
+        for agent in self.schedule: # step each agent
+            agent.step()
         self.datacollector.collect(self)
         self.current_timepoint += 1
 
@@ -86,7 +91,7 @@ server = app.server
 
 app.layout = html.Div([
     html.H1("Mental Health Intervention ABM Dashboard"),
-    
+
     # Depression Model Section
     html.Div([
         html.H2("Depression Model"),
@@ -95,7 +100,7 @@ app.layout = html.Div([
         html.Label("Baseline Depression"),
         dcc.Slider(id='baseline-slider', min=40, max=90, step=1, value=65),
     ], style={'padding': '20px', 'border': '1px solid #ddd'}),
-    
+
     # IBD Achievement Model Section
     html.Div([
         html.H2("IBD Achievement Model"),
@@ -110,7 +115,7 @@ app.layout = html.Div([
         html.Label("Session Duration Between Weeks 5-6"),
         dcc.Slider(id='interval5', min=70, max=800, value=400),
     ], style={'padding': '20px', 'border': '1px solid #ddd'}),
-    
+
     # Visualizations
     html.Div([
         dcc.Graph(id='depression-plot1'),
@@ -138,10 +143,10 @@ def update_all_plots(csq8_influence, baseline_influence, i1, i2, i3, i4, i5):
     try:
         # Update depression plots
         fig1, fig2, fig3 = generate_depression_plots(csq8_influence, baseline_influence)
-        
+
         # Update achievement plot
         achievement_fig = generate_achievement_plot([i1, i2, i3, i4, i5])
-        
+
         return fig1, fig2, fig3, achievement_fig
     except Exception as e:
         print(f"Error in update_all_plots: {str(e)}")
@@ -152,10 +157,10 @@ def generate_depression_plots(csq8_influence, baseline_influence):
     num_agents = 50
     csq8_values = [max(18, min(32, int(np.random.normal(csq8_influence, 2)))) for _ in range(num_agents)]
     t1_values = [max(40, min(90, int(np.random.normal(baseline_influence, 5)))) for _ in range(num_agents)]
-    
+
     chng_depression_csq8_values = [-1.2437 * (csq8 - 25) + np.random.normal(0, 2) for csq8 in csq8_values]
     chng_depression_t1_values = [-0.2412 * (t1_depression - 65) + np.random.normal(0, 2) for t1_depression in t1_values]
-    
+
     chng_depression_moderated_values = [
         calculate_depression_change(csq8, bd) for csq8, bd in zip(csq8_values, t1_values)
     ]
@@ -211,11 +216,11 @@ def generate_achievement_plot(durations):
     model = IBDModel(50, durations)
     for _ in range(6):
         model.step()
-    
+
     agent_data = model.datacollector.get_agent_vars_dataframe()
     timepoints = range(1, 7)
     averages = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
-    
+
     return {
         'data': [go.Scatter(
             x=timepoints,
