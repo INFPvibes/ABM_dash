@@ -103,9 +103,8 @@ def generate_ibd_plot(durations):
         achievement += achievement_change
         average_achievements.append(achievement)
 
-    # Fixed Y-axis range (e.g., from [0 to a consistent max value like `2000`])
     fixed_y_min = 0
-    fixed_y_max = 2000
+    fixed_y_max = 500
 
     fig = go.Figure(data=[
         go.Scatter(
@@ -119,11 +118,54 @@ def generate_ibd_plot(durations):
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
-        yaxis=dict(range=[fixed_y_min, fixed_y_max])  # Fixed Y-axis range
+        yaxis=dict(range=[fixed_y_min, fixed_y_max])
+    )
+
+    return fig, np.mean(average_achievements)
+
+# --- Generate Depression Change Plot ---
+def generate_depression_plot(average_achievement):
+    num_agents = 50
+    achievement_values = np.random.normal(average_achievement, average_achievement * 0.1, num_agents)
+    depression_change = -0.7 * achievement_values + np.random.normal(0, 10, num_agents)
+
+    fig = go.Figure(data=go.Scatter(
+        x=achievement_values,
+        y=depression_change,
+        mode='markers',
+        marker=dict(opacity=0.6)
+    ))
+
+    fig.update_layout(
+        title='Achievement vs Depression Change',
+        xaxis_title='Achievement Score',
+        yaxis_title='Depression Change',
+        yaxis_range=[-40, 40]
     )
 
     return fig
 
+# --- Generate Anxiety Change Plot ---
+def generate_anxiety_plot(average_achievement):
+    num_agents = 50
+    achievement_values = np.random.normal(average_achievement, average_achievement * 0.1, num_agents)
+    anxiety_change = -0.3 * achievement_values + np.random.normal(0, 15, num_agents)
+
+    fig = go.Figure(data=go.Scatter(
+        x=achievement_values,
+        y=anxiety_change,
+        mode='markers',
+        marker=dict(opacity=0.6)
+    ))
+
+    fig.update_layout(
+        title='Achievement vs Anxiety Change',
+        xaxis_title='Achievement Score',
+        yaxis_title='Anxiety Change',
+        yaxis_range=[-40, 40]
+    )
+
+    return fig
 # --- Dash App ---
 app = dash.Dash(__name__)
 server = app.server # For deployment
@@ -142,7 +184,7 @@ app.layout = html.Div([
                 dcc.Graph(id='plot3', style={'display': 'inline-block', 'width': '33%'})
             ])
         ]),
-        dcc.Tab(label='IBD Model', children=[
+    dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
             html.Div([
                 html.Div([
@@ -150,7 +192,9 @@ app.layout = html.Div([
                     dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
                 ]) for i in range(5)
             ]),
-            dcc.Graph(id='ibd-plot')
+            dcc.Graph(id='ibd-plot'),
+            dcc.Graph(id='depression-plot'),
+            dcc.Graph(id='anxiety-plot')
         ])
     ])
 ])
@@ -166,14 +210,19 @@ def update_graph(csq8_influence, baseline_depression_influence):
     fig1, fig2, fig3 = generate_plots(csq8_influence, baseline_depression_influence)
     return fig1, fig2, fig3
 
+
 @app.callback(
-    Output('ibd-plot', 'figure'),
+    [Output('ibd-plot', 'figure'),
+     Output('depression-plot', 'figure'),
+     Output('anxiety-plot', 'figure')],
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
     durations = list(intervals)
-    fig = generate_ibd_plot(durations)
-    return fig
+    fig_achievement, average_achievement = generate_ibd_plot(durations)
+    fig_depression = generate_depression_plot(average_achievement)
+    fig_anxiety = generate_anxiety_plot(average_achievement)
+    return fig_achievement, fig_depression, fig_anxiety
 
 if __name__ == '__main__':
     app.run_server(debug=True)
