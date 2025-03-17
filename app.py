@@ -35,10 +35,10 @@ class IBDModel(Model):
         self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
-        
+
         for i in range(self.num_agents):
             self.schedule.append(IBDAgent(i, self))
-        
+
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
         )
@@ -84,7 +84,7 @@ def generate_plots(csq8_influence, baseline_depression_influence):
             marker=dict(opacity=0.6)
         )
     ])
-    
+
     fig2 = go.Figure(data=[
         go.Scatter(
             x=t1_depression_values_clustered,
@@ -93,7 +93,7 @@ def generate_plots(csq8_influence, baseline_depression_influence):
             marker=dict(opacity=0.6)
         )
     ])
-    
+
     fig3 = go.Figure(data=[
         go.Scatter(
             x=csq8_values_clustered,
@@ -144,9 +144,10 @@ app.layout = html.Div([
         dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
             html.Div([
-                html.Label(f'Interval {i+1}'),
-                dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
-                for i in range(5)
+                html.Div([ # Changed Here
+                    html.Label(f'Interval {i+1}'),
+                    dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
+                ]) for i in range(5)
             ]),
             dcc.Graph(id='ibd-plot')
         ])
@@ -170,21 +171,21 @@ def update_graph(csq8_influence, baseline_depression_influence):
 )
 def update_ibd_graph(*intervals):
     durations = list(intervals)
-    
+
     model = IBDModel(50, durations)
-    
+
     for _ in range(6):
         model.step()
-    
+
     agent_data = model.datacollector.get_agent_vars_dataframe()
-    
+
     timepoints = list(range(1, 7))
-    
+
     average_achievements = [
         agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
         for timestep_idx in timepoints
     ]
-    
+
     fig = go.Figure(data=[
         go.Scatter(
             x=timepoints,
@@ -192,14 +193,14 @@ def update_ibd_graph(*intervals):
             mode='lines+markers'
         )
     ])
-    
+
     fig.update_layout(
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
         yaxis_range=[0, 350]
     )
-    
+
     return fig
 
 if __name__ == '__main__':
