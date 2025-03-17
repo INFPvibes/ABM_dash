@@ -6,7 +6,6 @@ import numpy as np
 import random
 from mesa import Agent, Model
 from mesa.space import MultiGrid
-from mesa.time import RandomActivation
 from mesa.datacollection import DataCollector
 
 # --- Define Agents and Models ---
@@ -51,12 +50,12 @@ class IBDAgent(Agent):
 class IBDModel2(Model):
     def __init__(self, N, durations):
         self.num_agents = N
-        self.schedule = RandomActivation(self)
+        self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
         
         for i in range(self.num_agents):
-            self.schedule.add(IBDAgent(i, self))
+            self.schedule.append(IBDAgent(i, self))
         
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
@@ -64,9 +63,10 @@ class IBDModel2(Model):
 
     def step(self):
         if self.current_timepoint <= 5:
-            for agent in self.schedule.agents:
+            for agent in self.schedule:
                 agent.session_duration = self.durations[self.current_timepoint - 1]
-        self.schedule.step()
+        for agent in self.schedule:
+            agent.step()
         self.datacollector.collect(self)
         self.current_timepoint += 1
 
