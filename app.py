@@ -205,5 +205,9 @@ def update_achievement_plot(interval1, interval2, interval3, interval4, interval
     )
     return fig
 
+@app.server.route('/health')  # Health Check
+def health_check():
+    return "OK", 200
+
 if __name__ == '__main__':
     app.run_server(debug=False)
