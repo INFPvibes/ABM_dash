@@ -88,8 +88,7 @@ def generate_ibd_plot(durations):
     achievement = 0
 
     for timepoint in range(1, num_timepoints + 1):
-        # Adjusted index handling for durations
-        duration_idx = min(timepoint - 1, len(durations) - 1)  # Ensures we never exceed the last duration
+        duration_idx = min(timepoint - 1, len(durations) - 1)  # Clamp to last duration if needed
         session_duration = durations[duration_idx]
 
         if timepoint < 3:
@@ -104,6 +103,10 @@ def generate_ibd_plot(durations):
         achievement += achievement_change
         average_achievements.append(achievement)
 
+    # Fixed Y-axis range (e.g., from [0 to a consistent max value like `2000`])
+    fixed_y_min = 0
+    fixed_y_max = 2000
+
     fig = go.Figure(data=[
         go.Scatter(
             x=list(range(1, num_timepoints + 1)),
@@ -116,11 +119,10 @@ def generate_ibd_plot(durations):
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
-        yaxis_range=[0, max(average_achievements) * 1.1 if average_achievements else 350]
+        yaxis=dict(range=[fixed_y_min, fixed_y_max])  # Fixed Y-axis range
     )
 
     return fig
-
 
 # --- Dash App ---
 app = dash.Dash(__name__)
