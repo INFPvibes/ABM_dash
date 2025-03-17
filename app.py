@@ -96,15 +96,15 @@ def calculate_depression_change(csq8, baseline_depression):
 
 def generate_depression_plots(csq8_influence, baseline_depression_influence):
     num_agents = 50
-    csq8_values_clustered = [max(18, min(32, int(np.random.normal(csq8_influence, 2)))) for _ in range(num_agents)]
-    t1_depression_values_clustered = [max(40, min(90, int(np.random.normal(baseline_depression_influence, 5)))) for _ in range(num_agents)]
+    csq8_values_clustered = list([max(18, min(32, int(np.random.normal(csq8_influence, 2)))) for _ in range(num_agents)])
+    t1_depression_values_clustered = list([max(40, min(90, int(np.random.normal(baseline_depression_influence, 5)))) for _ in range(num_agents)])
 
-    chng_depression_csq8_values = [-1.2437 * (csq8 - 25) + np.random.normal(0, 2) for csq8 in csq8_values_clustered]
-    chng_depression_t1_values = [-0.2412 * (t1_depression - 65) + np.random.normal(0, 2) for t1_depression in t1_depression_values_clustered]
+    chng_depression_csq8_values = list([-1.2437 * (csq8 - 25) + np.random.normal(0, 2) for csq8 in csq8_values_clustered])
+    chng_depression_t1_values = list([-0.2412 * (t1_depression - 65) + np.random.normal(0, 2) for t1_depression in t1_depression_values_clustered])
 
-    chng_depression_moderated_values = [
+    chng_depression_moderated_values = list([
         calculate_depression_change(csq8, bd) for csq8, bd in zip(csq8_values_clustered, t1_depression_values_clustered)
-    ]
+    ])
 
     fig1 = go.Figure(data=go.Scatter(x=csq8_values_clustered,
                                      y=chng_depression_csq8_values,
