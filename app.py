@@ -111,6 +111,18 @@ def generate_plots(csq8_influence, baseline_depression_influence):
 
     return fig1, fig2, fig3
 
+# Add this function definition
+def calculate_depression_change(csq8, baseline_depression):
+    normalized_baseline = (baseline_depression - 44) / (60 - 44)
+    if baseline_depression <= 44:
+        effect = -1.8489
+    elif baseline_depression >= 60:
+        effect = -0.9117
+    else:
+        effect = -1.8489 + normalized_baseline * (-0.9117 + 1.8489)
+    change = effect * (csq8 - 25)
+    return change + np.random.normal(0, 2)
+
 # --- Dash App ---
 app = dash.Dash(__name__)
 server = app.server # For deployment
@@ -134,7 +146,7 @@ app.layout = html.Div([
             html.Div([
                 html.Label(f'Interval {i+1}'),
                 dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
-                for i in range(5) # Convert generator to list explicitly.
+                for i in range(5)
             ]),
             dcc.Graph(id='ibd-plot')
         ])
@@ -157,19 +169,19 @@ def update_graph(csq8_influence, baseline_depression_influence):
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
-    durations = list(intervals) # Convert intervals to a list explicitly.
+    durations = list(intervals)
     
     model = IBDModel(50, durations)
     
-    for _ in range(6): # Run the model for all timepoints.
+    for _ in range(6):
         model.step()
     
     agent_data = model.datacollector.get_agent_vars_dataframe()
     
-    timepoints = list(range(1, 7)) # Ensure timepoints are a list.
+    timepoints = list(range(1, 7))
     
     average_achievements = [
-        agent_data.xs(timestep_idx , level="Step")["Achievement"].mean()
+        agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
         for timestep_idx in timepoints
     ]
     
