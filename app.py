@@ -62,15 +62,15 @@ class IBDModel(Model):
 # --- Generate Plots ---
 def generate_plot(durations):
     model = IBDModel(50, durations)
-    for _ in range(len(durations) + 1):  # Run the model through all timepoints
+    for _ in range(len(durations)):  # Run the model through all timepoints
         model.step()
     
     # Collect data for plotting
     agent_data = model.datacollector.get_agent_vars_dataframe()
-    timepoints = range(1, len(durations) + 2)
-    avg_achievements = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
+    timepoints = list(range(1, len(durations) + 1))
+    avg_achievements = [float(agent_data.xs(t, level="Step")["Achievement"].mean()) for t in timepoints]
 
-    fig = go.Figure(data=go.Scatter(x=list(timepoints), y=avg_achievements, mode='lines+markers'))
+    fig = go.Figure(data=go.Scatter(x=timepoints, y=avg_achievements, mode='lines+markers'))
     fig.update_layout(title="Average Achievement Over Time",
                       xaxis_title="Timepoint",
                       yaxis_title="Average Achievement",
