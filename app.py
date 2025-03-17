@@ -1,49 +1,13 @@
-# Import required libraries
 import dash
 from dash import dcc, html, Input, Output
 import plotly.graph_objs as go
 import numpy as np
 import random
 from mesa import Agent, Model
-from mesa.space import MultiGrid
 from mesa.datacollection import DataCollector
-from mesa.time import RandomActivation
-import logging
+from mesa.space import MultiGrid
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
-# --- Define Agents and Models ---
-class MyAgent(Agent):
-    def __init__(self, unique_id, model):
-        super().__init__(unique_id, model)
-        self.age = random.randint(13, 18)
-        self.T1Depression = random.randint(40, 90)
-        self.CSQ8 = random.randint(18, 32)
-        self.ChngDepression = random.randint(-17, 35)
-
-    def step(self):
-        pass
-
-class IBDModel(Model):
-    def __init__(self, N, width, height):
-        super().__init__()
-        self.num_agents = N
-        self.grid = MultiGrid(width, height, True)
-        self.schedule = RandomActivation(self)
-        self.agents = set()
-        logging.info(f"Creating {N} agents")
-        for i in range(self.num_agents):
-            a = MyAgent(i, self)
-            self.schedule.add(a)
-            self.agents.add(a)
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(a, (x, y))
-
-    def step(self):
-        self.schedule.step()
-
+# --- IBD Achievement Model ---
 class IBDAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -53,17 +17,16 @@ class IBDAgent(Agent):
     def step(self):
         self.achievement += self.model.calculate_achievement_change(self.session_duration)
 
-class IBDModel2(Model):
+class IBDModel(Model):
     def __init__(self, N, durations):
         super().__init__()
         self.num_agents = N
-        self.schedule = RandomActivation(self)
+        self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
         
         for i in range(self.num_agents):
-            a = IBDAgent(i, self)
-            self.schedule.add(a)
+            self.schedule.append(IBDAgent(i, self))
         
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
@@ -71,9 +34,11 @@ class IBDModel2(Model):
 
     def step(self):
         if self.current_timepoint <= 5:
-            for agent in self.schedule.agents:
+            for agent in self.schedule:
                 agent.session_duration = self.durations[self.current_timepoint - 1]
-        self.schedule.step()
+        random.shuffle(self.schedule)
+        for agent in self.schedule:
+            agent.step()
         self.datacollector.collect(self)
         self.current_timepoint += 1
 
@@ -84,10 +49,40 @@ class IBDModel2(Model):
             b_x = 0.2885
         else:
             b_x = 0.4476
+
         z_strength = self.current_timepoint * 0.07955
         return session_duration * b_x * z_strength
 
-# --- Moderation Effect Calculation ---
+# --- Depression Model ---
+class DepressionAgent(Agent):
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        self.age = random.randint(13, 18)
+        self.T1Depression = random.randint(40, 90)
+        self.CSQ8 = random.randint(18, 32)
+        self.ChngDepression = random.randint(-17, 35)
+
+    def step(self):
+        pass
+
+class DepressionModel(Model):
+    def __init__(self, N, width, height):
+        super().__init__()
+        self.num_agents = N
+        self.grid = MultiGrid(width, height, True)
+        self.agents = set()
+        for i in range(self.num_agents):
+            a = DepressionAgent(i, self)
+            self.agents.add(a)
+            x = self.random.randrange(self.grid.width)
+            y = self.random.randrange(self.grid.height)
+            self.grid.place_agent(a, (x, y))
+
+    def step(self):
+        for agent in list(self.agents):
+            agent.step()
+
+# --- Helper Functions ---
 def calculate_depression_change(csq8, baseline_depression):
     normalized_baseline = (baseline_depression - 44) / (60 - 44)
     if baseline_depression <= 44:
@@ -99,9 +94,8 @@ def calculate_depression_change(csq8, baseline_depression):
     change = effect * (csq8 - 25)
     return change + np.random.normal(0, 2)
 
-def generate_plots(csq8_influence, baseline_depression_influence):
+def generate_depression_plots(csq8_influence, baseline_depression_influence):
     num_agents = 50
-    logging.info(f"Generating plots with {num_agents} agents, CSQ8: {csq8_influence}, Baseline Depression: {baseline_depression_influence}")
     csq8_values_clustered = [max(18, min(32, int(np.random.normal(csq8_influence, 2)))) for _ in range(num_agents)]
     t1_depression_values_clustered = [max(40, min(90, int(np.random.normal(baseline_depression_influence, 5)))) for _ in range(num_agents)]
 
@@ -148,99 +142,68 @@ def generate_plots(csq8_influence, baseline_depression_influence):
 
     return fig1, fig2, fig3
 
-def generate_achievement_plot(durations):
-    model = IBDModel2(50, durations)
-    for _ in range(6):
-        model.step()
-
-    agent_data = model.datacollector.get_agent_vars_dataframe()
-    timepoints = range(1, 7)
-    averages = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
-
-    logging.info(f"Achievement data: Timepoints {timepoints}, Averages {averages}")
-
-    return {
-        'data': [go.Scatter(
-            x=list(timepoints),
-            y=averages,
-            mode='lines+markers',
-            line=dict(color='royalblue')
-        )],
-        'layout': go.Layout(
-            title='Average Achievement Over Time',
-            xaxis={'title': 'Timepoint'},
-            yaxis={'title': 'Achievement Score', 'range': [0, 350]},
-            hovermode='closest'
-        )
-    }
-
-# --- JupyterDash App ---
+# --- Dash App ---
 app = dash.Dash(__name__)
 server = app.server
 
 app.layout = html.Div([
     html.H1("Mental Health Intervention ABM Dashboard"),
-    # Depression Model Section
+    
     html.Div([
         html.H2("Depression Model"),
         html.Label("CSQ8 Influence"),
         dcc.Slider(id='csq8-slider', min=18, max=32, step=1, value=25),
         html.Label("Baseline Depression"),
         dcc.Slider(id='baseline-slider', min=40, max=90, step=1, value=65),
-    ], style={'padding': '20px', 'border': '1px solid #ddd'}),
-
-    # IBD Achievement Model Section
+        html.Div([
+            dcc.Graph(id='plot1', style={'display': 'inline-block', 'width': '33%'}),
+            dcc.Graph(id='plot2', style={'display': 'inline-block', 'width': '33%'}),
+            dcc.Graph(id='plot3', style={'display': 'inline-block', 'width': '33%'})
+        ])
+    ]),
+    
     html.Div([
         html.H2("IBD Achievement Model"),
-        html.Label("Session Duration Between Weeks 1-2"),
-        dcc.Slider(id='interval1', min=70, max=800, value=400),
-        html.Label("Session Duration Between Weeks 2-3"),
-        dcc.Slider(id='interval2', min=70, max=800, value=400),
-        html.Label("Session Duration Between Weeks 3-4"),
-        dcc.Slider(id='interval3', min=70, max=800, value=400),
-        html.Label("Session Duration Between Weeks 4-5"),
-        dcc.Slider(id='interval4', min=70, max=800, value=400),
-        html.Label("Session Duration Between Weeks 5-6"),
-        dcc.Slider(id='interval5', min=70, max=800, value=400),
-    ], style={'padding': '20px', 'border': '1px solid #ddd'}),
-    # Visualizations
-    html.Div([
-        dcc.Graph(id='depression-plot1'),
-        dcc.Graph(id='depression-plot2'),
-        dcc.Graph(id='depression-plot3'),
+        html.Div([
+            html.Label(f"Interval {i+1}"),
+            dcc.Slider(id=f'interval-{i+1}', min=70, max=800, value=400, step=1)
+        ] for i in range(5)),
         dcc.Graph(id='achievement-plot')
-    ], style={'columnCount': 2})
+    ])
 ])
 
-# --- Combined Callbacks ---
 @app.callback(
-    [Output('depression-plot1', 'figure'),
-     Output('depression-plot2', 'figure'),
-     Output('depression-plot3', 'figure'),
-     Output('achievement-plot', 'figure')],
-    [Input('csq8-slider', 'value'),
-     Input('baseline-slider', 'value'),
-     Input('interval1', 'value'),
-     Input('interval2', 'value'),
-     Input('interval3', 'value'),
-     Input('interval4', 'value'),
-     Input('interval5', 'value')]
+    [Output('plot1', 'figure'),
+     Output('plot2', 'figure'),
+     Output('plot3', 'figure')],
+    Input('csq8-slider', 'value'),
+    Input('baseline-slider', 'value')
 )
-def update_all_plots(csq8_influence, baseline_influence, i1, i2, i3, i4, i5):
-    try:
-        # Update depression plots
-        fig1, fig2, fig3 = generate_plots(csq8_influence, baseline_influence)
+def update_depression_graphs(csq8_influence, baseline_depression_influence):
+    return generate_depression_plots(csq8_influence, baseline_depression_influence)
 
-        # Update achievement plot
-        achievement_fig = generate_achievement_plot([i1, i2, i3, i4, i5])
+@app.callback(
+    Output('achievement-plot', 'figure'),
+    [Input(f'interval-{i+1}', 'value') for i in range(5)]
+)
+def update_achievement_plot(interval1, interval2, interval3, interval4, interval5):
+    durations = [interval1, interval2, interval3, interval4, interval5]
+    model = IBDModel(50, durations)
+    for _ in range(6):
+        model.step()
+    
+    agent_data = model.datacollector.get_agent_vars_dataframe()
+    timepoints = range(1, 7)
+    average_achievements = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
+    
+    fig = go.Figure(data=go.Scatter(x=list(timepoints), y=average_achievements, mode='lines+markers'))
+    fig.update_layout(
+        title='Average Achievement Over Time',
+        xaxis_title='Timepoint',
+        yaxis_title='Average Achievement Score',
+        yaxis_range=[0, 350]
+    )
+    return fig
 
-        return fig1, fig2, fig3, achievement_fig
-    except Exception as e:
-        logging.error(f"Error in update_all_plots: {str(e)}")
-        # Return empty figures in case of error
-        return [go.Figure() for _ in range(4)]
-
-# --- Run the app ---
 if __name__ == '__main__':
-    logging.info("Starting the app")
     app.run_server(debug=False)
