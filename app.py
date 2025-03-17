@@ -35,10 +35,10 @@ class IBDModel(Model):
         self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
-
+        
         for i in range(self.num_agents):
             self.schedule.append(IBDAgent(i, self))
-
+        
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
         )
@@ -63,6 +63,18 @@ class IBDModel(Model):
         z_strength = self.current_timepoint * 0.07955
         return session_duration * b_x * z_strength
 
+# --- Moderation Effect Calculation ---
+def calculate_depression_change(csq8, baseline_depression):
+    normalized_baseline = (baseline_depression - 44) / (60 - 44)
+    if baseline_depression <= 44:
+        effect = -1.8489
+    elif baseline_depression >= 60:
+        effect = -0.9117
+    else:
+        effect = -1.8489 + normalized_baseline * (-0.9117 + 1.8489)
+    change = effect * (csq8 - 25)
+    return change + np.random.normal(0, 2)
+
 # --- Generate Plots ---
 def generate_plots(csq8_influence, baseline_depression_influence):
     num_agents = 50
@@ -76,52 +88,41 @@ def generate_plots(csq8_influence, baseline_depression_influence):
         calculate_depression_change(csq8, bd) for csq8, bd in zip(csq8_values_clustered, t1_depression_values_clustered)
     ]
 
-    fig1 = go.Figure(data=[
-        go.Scatter(
-            x=csq8_values_clustered,
-            y=chng_depression_csq8_values,
-            mode='markers',
-            marker=dict(opacity=0.6)
-        )
-    ])
+    fig1 = go.Figure(data=go.Scatter(x=csq8_values_clustered,
+                                     y=chng_depression_csq8_values,
+                                     mode='markers',
+                                     marker=dict(opacity=0.6)))
+    fig1.update_layout(title='CSQ8 vs Change in Depression',
+                       xaxis_title='CSQ8 Score',
+                       yaxis_title='Change in Depression',
+                       xaxis_range=[17, 33],
+                       yaxis_range=[-40, 10])
 
-    fig2 = go.Figure(data=[
-        go.Scatter(
-            x=t1_depression_values_clustered,
-            y=chng_depression_t1_values,
-            mode='markers',
-            marker=dict(opacity=0.6)
-        )
-    ])
+    fig2 = go.Figure(data=go.Scatter(x=t1_depression_values_clustered,
+                                     y=chng_depression_t1_values,
+                                     mode='markers',
+                                     marker=dict(opacity=0.6)))
+    fig2.update_layout(title='Baseline Depression vs Change in Depression',
+                       xaxis_title='Baseline Depression (T1)',
+                       yaxis_title='Change in Depression',
+                       xaxis_range=[35, 95],
+                       yaxis_range=[-40, 10])
 
-    fig3 = go.Figure(data=[
-        go.Scatter(
-            x=csq8_values_clustered,
-            y=chng_depression_moderated_values,
-            mode='markers',
-            marker=dict(
-                color=t1_depression_values_clustered,
-                colorscale='Plasma',
-                opacity=0.7,
-                size=10,
-                colorbar=dict(title='Baseline Depression')
-            )
-        )
-    ])
+    fig3 = go.Figure(data=go.Scatter(x=csq8_values_clustered,
+                                     y=chng_depression_moderated_values,
+                                     mode='markers',
+                                     marker=dict(color=t1_depression_values_clustered,
+                                                 colorscale='Plasma',
+                                                 opacity=0.7,
+                                                 size=10,
+                                                 colorbar=dict(title='Baseline Depression'))))
+    fig3.update_layout(title='Moderation Effect of Baseline Depression',
+                       xaxis_title='CSQ8 Score',
+                       yaxis_title='Change in Depression',
+                       xaxis_range=[17, 33],
+                       yaxis_range=[-40, 10])
 
     return fig1, fig2, fig3
-
-# Add this function definition
-def calculate_depression_change(csq8, baseline_depression):
-    normalized_baseline = (baseline_depression - 44) / (60 - 44)
-    if baseline_depression <= 44:
-        effect = -1.8489
-    elif baseline_depression >= 60:
-        effect = -0.9117
-    else:
-        effect = -1.8489 + normalized_baseline * (-0.9117 + 1.8489)
-    change = effect * (csq8 - 25)
-    return change + np.random.normal(0, 2)
 
 # --- Dash App ---
 app = dash.Dash(__name__)
@@ -144,7 +145,7 @@ app.layout = html.Div([
         dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
             html.Div([
-                html.Div([ # Changed Here
+                html.Div([
                     html.Label(f'Interval {i+1}'),
                     dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
                 ]) for i in range(5)
@@ -171,21 +172,21 @@ def update_graph(csq8_influence, baseline_depression_influence):
 )
 def update_ibd_graph(*intervals):
     durations = list(intervals)
-
+    
     model = IBDModel(50, durations)
-
+    
     for _ in range(6):
         model.step()
-
+    
     agent_data = model.datacollector.get_agent_vars_dataframe()
-
+    
     timepoints = list(range(1, 7))
-
+    
     average_achievements = [
         agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
         for timestep_idx in timepoints
     ]
-
+    
     fig = go.Figure(data=[
         go.Scatter(
             x=timepoints,
@@ -193,14 +194,14 @@ def update_ibd_graph(*intervals):
             mode='lines+markers'
         )
     ])
-
+    
     fig.update_layout(
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
         yaxis_range=[0, 350]
     )
-
+    
     return fig
 
 if __name__ == '__main__':
