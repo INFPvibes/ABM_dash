@@ -25,9 +25,12 @@ class IBDAgent(Agent):
         super().__init__(unique_id, model)
         self.session_duration = 0
         self.achievement = 0
+        print(f"Agent {unique_id} initialized with achievement: {self.achievement}") #Debug
 
     def step(self):
-        self.achievement += self.model.calculate_achievement_change(self.session_duration)
+        achievement_change = self.model.calculate_achievement_change(self.session_duration)
+        self.achievement += achievement_change
+        print(f"Agent {self.unique_id} updated achievement to: {self.achievement}") #Debug
 
 class IBDModel(Model):
     def __init__(self, N, durations):
@@ -35,15 +38,16 @@ class IBDModel(Model):
         self.schedule = []
         self.current_timepoint = 1
         self.durations = durations
-        
+
         for i in range(self.num_agents):
             self.schedule.append(IBDAgent(i, self))
-        
+
         self.datacollector = DataCollector(
             agent_reporters={"Achievement": lambda a: a.achievement}
         )
 
     def step(self):
+        print(f"Timepoint: {self.current_timepoint}, Durations: {self.durations}") #Debug
         if self.current_timepoint <= 5:
             for agent in self.schedule:
                 agent.session_duration = self.durations[self.current_timepoint - 1]
@@ -186,6 +190,8 @@ def update_ibd_graph(*intervals):
 
     agent_data = ibd_model.datacollector.get_agent_vars_dataframe()
 
+    print("Agent Dataframe:", agent_data) #Debug
+
     timepoints = list(range(1, 7))
     average_achievements = []
 
@@ -197,7 +203,8 @@ def update_ibd_graph(*intervals):
             print(f"No data for timestep {timestep_idx}")
             average_achievements.append(0)  # or some default value
 
-    print(f"Average achievements: {average_achievements}")
+    print(f"Average achievements: {average_achievements}") #Debug
+    print(f"Timepoints: {timepoints}") #Debug
 
     fig = go.Figure(data=[
         go.Scatter(
