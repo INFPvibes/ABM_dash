@@ -20,24 +20,6 @@ class MyAgent(Agent):
     def step(self):
         pass
 
-class IBDModel(Model):
-    def __init__(self, N, width, height):
-        super().__init__()
-        self.num_agents = N
-        self.grid = MultiGrid(width, height, True)
-
-        self.agents = set()
-        for i in range(self.num_agents):
-            a = MyAgent(i, self)
-            self.agents.add(a)
-            x = self.random.randrange(self.grid.width)
-            y = self.random.randrange(self.grid.height)
-            self.grid.place_agent(a, (x, y))
-
-    def step(self):
-        for agent in list(self.agents):
-            agent.step()
-
 class IBDAgent(Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -47,7 +29,7 @@ class IBDAgent(Agent):
     def step(self):
         self.achievement += self.model.calculate_achievement_change(self.session_duration)
 
-class IBDModel2(Model):
+class IBDModel(Model):
     def __init__(self, N, durations):
         self.num_agents = N
         self.schedule = []
@@ -81,25 +63,6 @@ class IBDModel2(Model):
         z_strength = self.current_timepoint * 0.07955
         return session_duration * b_x * z_strength
 
-# --- Run the Model ---
-def run_model(N=50, width=10, height=10, steps=100):
-    model = IBDModel(N, width, height)
-    for _ in range(steps):
-        model.step()
-    return model
-
-# --- Moderation Effect Calculation ---
-def calculate_depression_change(csq8, baseline_depression):
-    normalized_baseline = (baseline_depression - 44) / (60 - 44)
-    if baseline_depression <= 44:
-        effect = -1.8489
-    elif baseline_depression >= 60:
-        effect = -0.9117
-    else:
-        effect = -1.8489 + normalized_baseline * (-0.9117 + 1.8489)
-    change = effect * (csq8 - 25)
-    return change + np.random.normal(0, 2)
-
 # --- Generate Plots ---
 def generate_plots(csq8_influence, baseline_depression_influence):
     num_agents = 50
@@ -113,45 +76,44 @@ def generate_plots(csq8_influence, baseline_depression_influence):
         calculate_depression_change(csq8, bd) for csq8, bd in zip(csq8_values_clustered, t1_depression_values_clustered)
     ]
 
-    fig1 = go.Figure(data=go.Scatter(x=csq8_values_clustered,
-                                     y=chng_depression_csq8_values,
-                                     mode='markers',
-                                     marker=dict(opacity=0.6)))
-    fig1.update_layout(title='CSQ8 vs Change in Depression',
-                       xaxis_title='CSQ8 Score',
-                       yaxis_title='Change in Depression',
-                       xaxis_range=[17, 33],
-                       yaxis_range=[-40, 10])
-
-    fig2 = go.Figure(data=go.Scatter(x=t1_depression_values_clustered,
-                                     y=chng_depression_t1_values,
-                                     mode='markers',
-                                     marker=dict(opacity=0.6)))
-    fig2.update_layout(title='Baseline Depression vs Change in Depression',
-                       xaxis_title='Baseline Depression (T1)',
-                       yaxis_title='Change in Depression',
-                       xaxis_range=[35, 95],
-                       yaxis_range=[-40, 10])
-
-    fig3 = go.Figure(data=go.Scatter(x=csq8_values_clustered,
-                                     y=chng_depression_moderated_values,
-                                     mode='markers',
-                                     marker=dict(color=t1_depression_values_clustered,
-                                                 colorscale='Plasma',
-                                                 opacity=0.7,
-                                                 size=10,
-                                                 colorbar=dict(title='Baseline Depression'))))
-    fig3.update_layout(title='Moderation Effect of Baseline Depression',
-                       xaxis_title='CSQ8 Score',
-                       yaxis_title='Change in Depression',
-                       xaxis_range=[17, 33],
-                       yaxis_range=[-40, 10])
+    fig1 = go.Figure(data=[
+        go.Scatter(
+            x=csq8_values_clustered,
+            y=chng_depression_csq8_values,
+            mode='markers',
+            marker=dict(opacity=0.6)
+        )
+    ])
+    
+    fig2 = go.Figure(data=[
+        go.Scatter(
+            x=t1_depression_values_clustered,
+            y=chng_depression_t1_values,
+            mode='markers',
+            marker=dict(opacity=0.6)
+        )
+    ])
+    
+    fig3 = go.Figure(data=[
+        go.Scatter(
+            x=csq8_values_clustered,
+            y=chng_depression_moderated_values,
+            mode='markers',
+            marker=dict(
+                color=t1_depression_values_clustered,
+                colorscale='Plasma',
+                opacity=0.7,
+                size=10,
+                colorbar=dict(title='Baseline Depression')
+            )
+        )
+    ])
 
     return fig1, fig2, fig3
 
 # --- Dash App ---
 app = dash.Dash(__name__)
-server = app.server #for deployment
+server = app.server # For deployment
 
 app.layout = html.Div([
     dcc.Tabs([
@@ -172,7 +134,8 @@ app.layout = html.Div([
             html.Div([
                 html.Label(f'Interval {i+1}'),
                 dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
-            ] for i in range(5)),
+                for i in range(5) # Convert generator to list explicitly.
+            ]),
             dcc.Graph(id='ibd-plot')
         ])
     ])
@@ -194,25 +157,37 @@ def update_graph(csq8_influence, baseline_depression_influence):
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
-    durations = list(intervals)
-    model = IBDModel2(50, durations)
-    for _ in range(6):  # Run the model for all 6 timepoints
+    durations = list(intervals) # Convert intervals to a list explicitly.
+    
+    model = IBDModel(50, durations)
+    
+    for _ in range(6): # Run the model for all timepoints.
         model.step()
     
     agent_data = model.datacollector.get_agent_vars_dataframe()
     
-    # Prepare data for line plot
-    timepoints = range(1, 7)
-    average_achievements = [agent_data.xs(t, level="Step")["Achievement"].mean() for t in timepoints]
+    timepoints = list(range(1, 7)) # Ensure timepoints are a list.
     
-    # Create line plot
-    fig = go.Figure(data=go.Scatter(x=list(timepoints), y=average_achievements, mode='lines+markers'))
+    average_achievements = [
+        agent_data.xs(timestep_idx , level="Step")["Achievement"].mean()
+        for timestep_idx in timepoints
+    ]
+    
+    fig = go.Figure(data=[
+        go.Scatter(
+            x=timepoints,
+            y=average_achievements,
+            mode='lines+markers'
+        )
+    ])
+    
     fig.update_layout(
         title='Average Achievement Over Time',
         xaxis_title='Timepoint',
         yaxis_title='Average Achievement Score',
         yaxis_range=[0, 350]
     )
+    
     return fig
 
 if __name__ == '__main__':
