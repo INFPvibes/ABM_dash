@@ -20,53 +20,6 @@ class MyAgent(Agent):
     def step(self):
         pass
 
-class IBDAgent(Agent):
-    def __init__(self, unique_id, model):
-        super().__init__(unique_id, model)
-        self.session_duration = 0
-        self.achievement = 0
-        print(f"Agent {unique_id} initialized with achievement: {self.achievement}") #Debug
-
-    def step(self):
-        achievement_change = self.model.calculate_achievement_change(self.session_duration)
-        self.achievement += achievement_change
-        print(f"Agent {self.unique_id} updated achievement to: {self.achievement}") #Debug
-
-class IBDModel(Model):
-    def __init__(self, N, durations):
-        self.num_agents = N
-        self.schedule = []
-        self.current_timepoint = 1
-        self.durations = durations
-
-        for i in range(self.num_agents):
-            self.schedule.append(IBDAgent(i, self))
-
-        self.datacollector = DataCollector(
-            agent_reporters={"Achievement": lambda a: a.achievement}
-        )
-
-    def step(self):
-        print(f"Timepoint: {self.current_timepoint}, Durations: {self.durations}") #Debug
-        if self.current_timepoint <= 5:
-            for agent in self.schedule:
-                agent.session_duration = self.durations[self.current_timepoint - 1]
-        for agent in self.schedule:
-            agent.step()
-        self.datacollector.collect(self)
-        self.current_timepoint += 1
-
-    def calculate_achievement_change(self, session_duration):
-        if self.current_timepoint < 3:
-            b_x = 0.1294
-        elif self.current_timepoint < 5:
-            b_x = 0.2885
-        else:
-            b_x = 0.4476
-
-        z_strength = self.current_timepoint * 0.07955
-        return session_duration * b_x * z_strength
-
 # --- Moderation Effect Calculation ---
 def calculate_depression_change(csq8, baseline_depression):
     normalized_baseline = (baseline_depression - 44) / (60 - 44)
@@ -128,9 +81,42 @@ def generate_plots(csq8_influence, baseline_depression_influence):
 
     return fig1, fig2, fig3
 
-# Initialize the IBDModel *outside* the callback
-initial_durations = [400] * 5  # Or any initial values you prefer
-ibd_model = IBDModel(50, initial_durations) # This is now global
+# --- Generate IBD Plot ---
+def generate_ibd_plot(durations):
+    num_timepoints = 6
+    average_achievements = []
+    achievement = 0
+
+    for timepoint in range(1, num_timepoints + 1):
+        if timepoint < 3:
+            b_x = 0.1294
+        elif timepoint < 5:
+            b_x = 0.2885
+        else:
+            b_x = 0.4476
+
+        z_strength = timepoint * 0.07955
+        session_duration = durations[timepoint-1] if timepoint <= len(durations) else 0
+        achievement_change = session_duration * b_x * z_strength
+        achievement += achievement_change
+        average_achievements.append(achievement)
+
+    fig = go.Figure(data=[
+        go.Scatter(
+            x=list(range(1, num_timepoints + 1)),
+            y=average_achievements,
+            mode='lines+markers'
+        )
+    ])
+
+    fig.update_layout(
+        title='Average Achievement Over Time',
+        xaxis_title='Timepoint',
+        yaxis_title='Average Achievement Score',
+        yaxis_range=[0, max(average_achievements) * 1.1 if average_achievements else 350]
+    )
+
+    return fig
 
 # --- Dash App ---
 app = dash.Dash(__name__)
@@ -179,51 +165,8 @@ def update_graph(csq8_influence, baseline_depression_influence):
     [Input(f'interval-slider-{i+1}', 'value') for i in range(5)]
 )
 def update_ibd_graph(*intervals):
-    print(f"Intervals received: {intervals}")
-
-    # Update the durations in the *existing* model
-    ibd_model.durations = list(intervals)
-
-    # Run the model for some more steps
-    for _ in range(6):  # Run model further now, with updated intervals.
-        ibd_model.step()
-
-    agent_data = ibd_model.datacollector.get_agent_vars_dataframe()
-
-    print("Agent Dataframe:", agent_data) #Debug
-
-    timepoints = list(range(1, 7))
-    average_achievements = []
-
-    for timestep_idx in timepoints:
-        try:
-            achievement = agent_data.xs(timestep_idx, level="Step")["Achievement"].mean()
-            average_achievements.append(achievement)
-        except KeyError:
-            print(f"No data for timestep {timestep_idx}")
-            average_achievements.append(0)  # or some default value
-
-    print(f"Average achievements: {average_achievements}") #Debug
-    print(f"Timepoints: {timepoints}") #Debug
-
-    fig = go.Figure(data=[
-        go.Scatter(
-            x=timepoints,
-            y=average_achievements,
-            mode='lines+markers'
-        )
-    ])
-
-    #Determine Y axis range
-    max_achievement = max(average_achievements) if average_achievements else 350
-
-    fig.update_layout(
-        title='Average Achievement Over Time',
-        xaxis_title='Timepoint',
-        yaxis_title='Average Achievement Score',
-        yaxis_range=[0, max_achievement * 1.1]  # Adjust y-axis range dynamically
-    )
-
+    durations = list(intervals)
+    fig = generate_ibd_plot(durations)
     return fig
 
 if __name__ == '__main__':
