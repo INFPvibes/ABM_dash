@@ -120,7 +120,7 @@ def generate_ibd_plot(durations):
         achievements.append(cumulative_effect)
 
     fixed_y_min = 0
-    fixed_y_max = max(achievements) * 1.1  # Adjust the max y-axis based on data
+    fixed_y_max = 500
 
     fig = go.Figure(data=[
         go.Scatter(
@@ -137,7 +137,7 @@ def generate_ibd_plot(durations):
         yaxis=dict(range=[fixed_y_min, fixed_y_max])
     )
 
-    return fig, np.mean(average_achievements)
+    return fig, np.mean(achievements)
 
 # --- Generate Depression Change Plot ---
 def generate_depression_plot(average_achievement):
@@ -210,16 +210,16 @@ app.layout = html.Div([
                 html.Div([
                     html.Div([
                         html.Label(f'Interval {i+1}'),
-                        dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=10, value=400)
+                        dcc.Slider(id=f'interval-slider-{i+1}', min=70, max=800, step=20, value=400)
                     ]) for i in range(5)
-                ], style={'width': '30%', 'display': 'inline-block', 'vertical-align': 'top'}),
+                ], style={'width': '40%', 'display': 'inline-block', 'vertical-align': 'top'}),
 
                 # Right column for plots
                 html.Div([
                     dcc.Graph(id='ibd-plot'),
                     dcc.Graph(id='depression-plot'),
                     dcc.Graph(id='anxiety-plot')
-                ], style={'width': '70%', 'display': 'inline-block'})
+                ], style={'width': '60%', 'display': 'inline-block'})
             ])
         ])
     ])
