@@ -424,6 +424,6 @@ def update_age_plots(age_influence):  # Pass age_influence to the functions
     fig4 = generate_age_attendance_satisfaction_plot(age_influence)
     fig5 = generate_age_achievement_plot(age_influence)
     return fig1, fig2, fig3, fig4, fig5
-
+)
 if __name__ == '__main__':
     app.run_server(debug=True)
