@@ -110,8 +110,8 @@ def generate_plots(csq8_influence, baseline_depression_influence):
 
     return fig1, fig2, fig3
 
-# --- Generate Anxiety Plot ---
-def generate_anxiety_plot(attendance_influence, csq8_influence):
+# --- Generate Anxiety TAB Plot ---
+def generate_anxiety_plot_anxiety_tab(attendance_influence, csq8_influence):
     num_agents = 50
     # Generate CSQ8 values clustered around the slider value
     csq8_values = [max(18, min(32, int(np.random.normal(csq8_influence, 3)))) for _ in range(num_agents)]
@@ -450,9 +450,8 @@ def update_graph(csq8_influence, baseline_depression_influence):
     Input('csq8-slider-anxiety', 'value')
 )
 def update_anxiety_graph(attendance_influence, csq8_influence):
-    fig = generate_anxiety_plot(attendance_influence, csq8_influence)
+    fig = generate_anxiety_plot_anxiety_tab(attendance_influence, csq8_influence)
     return fig
-
 
 @app.callback(
     [Output('ibd-plot', 'figure'),
