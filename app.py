@@ -247,11 +247,11 @@ def generate_anxiety_plot(average_achievement):
     )
 
     return fig
-    # --- AGE on attendance, depression, anxiety, and Achievement ---
+# --- AGE on attendance, depression, anxiety, and Achievement ---
 def generate_age_attendance_anxiety_plot(age_influence):
-    model = run_model(age_influence=age_influence)
-    ages = [agent.age for agent in model.agents]
-    attendance = np.random.randint(1, 11, len(model.agents))
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
+    attendance = np.random.randint(1, 11, num_agents)
     anxiety_change = []
     
     for age, attend in zip(ages, attendance):
@@ -268,8 +268,8 @@ def generate_age_attendance_anxiety_plot(age_influence):
     return fig
 
 def generate_age_anxiety_t1_plot(age_influence):
-    model = run_model(age_influence=age_influence)
-    ages = [agent.age for agent in model.agents]
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
     anxiety_t1 = [40 + 0.323 * age + np.random.normal(0, 5) for age in ages]
     
     fig = go.Figure(data=go.Scatter(x=ages, y=anxiety_t1, mode='markers'))
@@ -278,8 +278,8 @@ def generate_age_anxiety_t1_plot(age_influence):
     return fig
 
 def generate_age_depression_t1_plot(age_influence):
-    model = run_model(age_influence=age_influence)
-    ages = [agent.age for agent in model.agents]
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
     depression_t1 = [40 + 0.419 * age + np.random.normal(0, 5) for age in ages]
     
     fig = go.Figure(data=go.Scatter(x=ages, y=depression_t1, mode='markers'))
@@ -288,9 +288,9 @@ def generate_age_depression_t1_plot(age_influence):
     return fig
 
 def generate_age_attendance_satisfaction_plot(age_influence):
-    model = run_model(age_influence=age_influence)
-    ages = [agent.age for agent in model.agents]
-    attendance = np.random.randint(1, 11, len(model.agents))
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
+    attendance = np.random.randint(1, 11, num_agents)
     satisfaction = []
     
     for age, attend in zip(ages, attendance):
@@ -307,14 +307,15 @@ def generate_age_attendance_satisfaction_plot(age_influence):
     return fig
 
 def generate_age_achievement_plot(age_influence):
-    model = run_model(age_influence=age_influence)
-    ages = [agent.age for agent in model.agents]
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
     achievements = [10 * age + np.random.normal(0, 20) for age in ages]
     
     fig = go.Figure(data=go.Scatter(x=ages, y=achievements, mode='markers'))
     fig.update_layout(title='Age vs Achievement Levels',
                       xaxis_title='Age', yaxis_title='Achievement')
     return fig
+
 
 # --- Dash App ---
 app = dash.Dash(__name__)
