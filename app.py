@@ -343,18 +343,19 @@ app.layout = html.Div([
             dcc.Graph(id='anxiety-plot', style={'width': '60%', 'margin': 'auto'})
         ]),
      
-        # Age Analysis Tab
-        dcc.Tab(label='Age Analysis', children=[
-            html.H1("Age-Related Analysis"),
-            html.Label("Age Influence"),
-            dcc.Slider(id='age-slider', min=13, max=18, step=1, value=15),  # Slider for age influence
-            html.Div([
-                dcc.Graph(id='age-attendance-anxiety-plot', style={'width': '50%', 'display': 'inline-block'}),
-                dcc.Graph(id='age-anxiety-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
-                dcc.Graph(id='age-depression-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
-                dcc.Graph(id='age-attendance-satisfaction-plot', style={'width': '50%', 'display': 'inline-block'}),
-                dcc.Graph(id='age-achievement-plot', style={'width': '50%', 'display': 'inline-block'})
-        ]),
+      # Age Analysis Tab
+dcc.Tab(label='Age Analysis', children=[
+    html.H1("Age-Related Analysis"),
+    html.Label("Age Influence"),
+    dcc.Slider(id='age-slider', min=13, max=18, step=1, value=15),  # Slider for age influence
+    html.Div([
+        dcc.Graph(id='age-attendance-anxiety-plot', style={'width': '50%', 'display': 'inline-block'}),
+        dcc.Graph(id='age-anxiety-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
+        dcc.Graph(id='age-depression-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
+        dcc.Graph(id='age-attendance-satisfaction-plot', style={'width': '50%', 'display': 'inline-block'}),
+        dcc.Graph(id='age-achievement-plot', style={'width': '50%', 'display': 'inline-block'})
+    ])
+]),
         # IBD Model Tab
         dcc.Tab(label='IBD Model', children=[
             html.H1("Agent-Based Model for IBD"),
@@ -409,6 +410,7 @@ def update_ibd_graph(*intervals):
     fig_anxiety = generate_anxiety_plot(average_achievement)
     return fig_achievement, fig_depression, fig_anxiety
     # Callback for Age Analysis Tab
+# Callback for Age Analysis Tab
 @app.callback(
     [Output('age-attendance-anxiety-plot', 'figure'),
      Output('age-anxiety-t1-plot', 'figure'),
@@ -424,6 +426,5 @@ def update_age_plots(age_influence):  # Pass age_influence to the functions
     fig4 = generate_age_attendance_satisfaction_plot(age_influence)
     fig5 = generate_age_achievement_plot(age_influence)
     return fig1, fig2, fig3, fig4, fig5
-)
 if __name__ == '__main__':
     app.run_server(debug=True)
