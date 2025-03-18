@@ -380,7 +380,7 @@ app.layout = html.Div([
 @app.callback(
     [Output('plot1', 'figure'),
      Output('plot2', 'figure'),
-     Output('plot3', 'figure'),
+     Output('plot3', 'figure')],
     Input('csq8-slider', 'value'),
     Input('baseline-slider', 'value')
 )
