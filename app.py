@@ -116,7 +116,7 @@ def generate_anxiety_plot_anxiety_tab(attendance_influence, csq8_influence):
     # Generate CSQ8 values clustered around the slider value
     csq8_values = [max(18, min(32, int(np.random.normal(csq8_influence, 3)))) for _ in range(num_agents)]
     # Generate random attendance values for agents
-    attendance_values = [max(1, min(10, int(np.random.normal(attendance_influence, 1)))) for _ in range(num_agents)]
+    attendance_values = [max(1, min(6, int(np.random.normal(attendance_influence, 1)))) for _ in range(num_agents)]
     
     anxiety_change = []
 
@@ -126,7 +126,7 @@ def generate_anxiety_plot_anxiety_tab(attendance_influence, csq8_influence):
             effect = -3.2783  # Strong negative effect at low attendance
         else:
             effect = -3.2783 + (attendance - 4) * 0.5  # Weaken with higher attendance
-        change = effect * (csq8 - 25) + np.random.normal(0, 10)
+        change = effect * (csq8 - 25) + np.random.normal(0, 6)
         anxiety_change.append(change)
 
     # Create the scatter plot with a color gradient based on attendance
@@ -138,8 +138,10 @@ def generate_anxiety_plot_anxiety_tab(attendance_influence, csq8_influence):
             color=attendance_values,  # Color by attendance
             colorscale='Viridis',     # Choose a colorscale
             colorbar=dict(title='Attendance'),
+              cmin=1,  # Minimum value for the colorscale
+            cmax=6, # Maximum value for the colorscale
             opacity=0.7,
-            size=10
+            size=6
         )
     ))
     
