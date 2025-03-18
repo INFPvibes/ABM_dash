@@ -22,7 +22,7 @@ class MyAgent(Agent):
 
         # Attributes for IBD Model
         self.achievement = 0
-        self.session_durations = [random.randint(70, 800) for _ in range(5)]
+        self.session_durations = [random.randint(70, 800) for _ in (5)]
 
     def step(self):
         pass
@@ -288,7 +288,7 @@ def generate_age_attendance_anxiety_plot(age_influence):
         xaxis_title='Attendance',
         yaxis_title='Anxiety Change',
         xaxis_range=[0, 11],
-        yaxis_range=[min(anxiety_change), max(anxiety_change)]
+        yaxis_range=[-30,50]
     )
     return fig
 
@@ -302,7 +302,7 @@ def generate_age_anxiety_t1_plot(age_influence):
         title='Age vs Anxiety T1 (r = 0.323)',
         xaxis_title='Age',
         yaxis_title='Anxiety T1',
-        xaxis_range=[age_influence - 3, age_influence + 3]
+        xaxis_range=[13,18]
     )
     return fig
 
@@ -316,7 +316,7 @@ def generate_age_depression_t1_plot(age_influence):
         title='Age vs Depression T1 (r = 0.419)',
         xaxis_title='Age',
         yaxis_title='Depression T1',
-        xaxis_range=[age_influence - 3, age_influence + 3]
+        xaxis_range=[13,18]
     )
     return fig
 
@@ -350,7 +350,7 @@ def generate_age_attendance_satisfaction_plot(age_influence):
         xaxis_title='Attendance',
         yaxis_title='Client Satisfaction',
         xaxis_range=[0, 11],
-        yaxis_range=[min(satisfaction), max(satisfaction)]
+        yaxis_range=[18,32]
     )
     return fig
 
@@ -364,7 +364,7 @@ def generate_age_achievement_plot(age_influence):
         title='Age vs Achievement Levels',
         xaxis_title='Age',
         yaxis_title='Achievement',
-        xaxis_range=[age_influence - 3, age_influence + 3]
+        xaxis_range=[13,18]
     )
     return fig
 
