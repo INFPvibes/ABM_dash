@@ -247,6 +247,75 @@ def generate_anxiety_plot(average_achievement):
     )
 
     return fig
+    # --- AGE on attendance, depression, anxiety, and Achievement ---
+def generate_age_attendance_anxiety_plot(age_influence):
+    model = run_model(age_influence=age_influence)
+    ages = [agent.age for agent in model.agents]
+    attendance = np.random.randint(1, 11, len(model.agents))
+    anxiety_change = []
+    
+    for age, attend in zip(ages, attendance):
+        if age <= 15:  # Younger participants
+            effect = 7.3124  # Increase in anxiety with attendance
+        else:
+            effect = -2.9477  # Older participants
+        
+        anxiety_change.append(effect * attend + np.random.normal(0, 5))
+    
+    fig = go.Figure(data=[go.Scatter3d(x=ages, y=attendance, z=anxiety_change, mode='markers')])
+    fig.update_layout(title='Age as Moderator of Attendance on Anxiety Change',
+                      scene=dict(xaxis_title='Age', yaxis_title='Attendance', zaxis_title='Anxiety Change'))
+    return fig
+
+def generate_age_anxiety_t1_plot(age_influence):
+    model = run_model(age_influence=age_influence)
+    ages = [agent.age for agent in model.agents]
+    anxiety_t1 = [40 + 0.323 * age + np.random.normal(0, 5) for age in ages]
+    
+    fig = go.Figure(data=go.Scatter(x=ages, y=anxiety_t1, mode='markers'))
+    fig.update_layout(title='Age vs Anxiety T1 (r = 0.323)',
+                      xaxis_title='Age', yaxis_title='Anxiety T1')
+    return fig
+
+def generate_age_depression_t1_plot(age_influence):
+    model = run_model(age_influence=age_influence)
+    ages = [agent.age for agent in model.agents]
+    depression_t1 = [40 + 0.419 * age + np.random.normal(0, 5) for age in ages]
+    
+    fig = go.Figure(data=go.Scatter(x=ages, y=depression_t1, mode='markers'))
+    fig.update_layout(title='Age vs Depression T1 (r = 0.419)',
+                      xaxis_title='Age', yaxis_title='Depression T1')
+    return fig
+
+def generate_age_attendance_satisfaction_plot(age_influence):
+    model = run_model(age_influence=age_influence)
+    ages = [agent.age for agent in model.agents]
+    attendance = np.random.randint(1, 11, len(model.agents))
+    satisfaction = []
+    
+    for age, attend in zip(ages, attendance):
+        if age <= 15:  # Younger participants
+            effect = -1.4488  # Negative relationship
+        else:
+            effect = 1.8749  # Positive relationship
+            
+        satisfaction.append(effect * attend + np.random.normal(0, 2))
+        
+    fig = go.Figure(data=[go.Scatter3d(x=ages, y=attendance, z=satisfaction, mode='markers')])
+    fig.update_layout(title='Age Moderating Attendance and Client Satisfaction',
+                      scene=dict(xaxis_title='Age', yaxis_title='Attendance', zaxis_title='Client Satisfaction'))
+    return fig
+
+def generate_age_achievement_plot(age_influence):
+    model = run_model(age_influence=age_influence)
+    ages = [agent.age for agent in model.agents]
+    achievements = [10 * age + np.random.normal(0, 20) for age in ages]
+    
+    fig = go.Figure(data=go.Scatter(x=ages, y=achievements, mode='markers'))
+    fig.update_layout(title='Age vs Achievement Levels',
+                      xaxis_title='Age', yaxis_title='Achievement')
+    return fig
+
 # --- Dash App ---
 app = dash.Dash(__name__)
 server = app.server  # For deployment
@@ -272,6 +341,19 @@ app.layout = html.Div([
             html.Label("Attendance (Number of Sessions)"),
             dcc.Slider(id='attendance-slider', min=1, max=10, step=1, value=4),
             dcc.Graph(id='anxiety-plot', style={'width': '60%', 'margin': 'auto'})
+        ]),
+     
+        # Age Analysis Tab
+        dcc.Tab(label='Age Analysis', children=[
+            html.H1("Age-Related Analysis"),
+            html.Label("Age Influence"),
+            dcc.Slider(id='age-slider', min=13, max=18, step=1, value=15),  # Slider for age influence
+            html.Div([
+                dcc.Graph(id='age-attendance-anxiety-plot', style={'width': '50%', 'display': 'inline-block'}),
+                dcc.Graph(id='age-anxiety-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
+                dcc.Graph(id='age-depression-t1-plot', style={'width': '50%', 'display': 'inline-block'}),
+                dcc.Graph(id='age-attendance-satisfaction-plot', style={'width': '50%', 'display': 'inline-block'}),
+                dcc.Graph(id='age-achievement-plot', style={'width': '50%', 'display': 'inline-block'})
         ]),
         # IBD Model Tab
         dcc.Tab(label='IBD Model', children=[
@@ -326,6 +408,22 @@ def update_ibd_graph(*intervals):
     fig_depression = generate_depression_plot(average_achievement)
     fig_anxiety = generate_anxiety_plot(average_achievement)
     return fig_achievement, fig_depression, fig_anxiety
+    # Callback for Age Analysis Tab
+@app.callback(
+    [Output('age-attendance-anxiety-plot', 'figure'),
+     Output('age-anxiety-t1-plot', 'figure'),
+     Output('age-depression-t1-plot', 'figure'),
+     Output('age-attendance-satisfaction-plot', 'figure'),
+     Output('age-achievement-plot', 'figure')],
+    Input('age-slider', 'value')  # Input from the age slider
+)
+def update_age_plots(age_influence):  # Pass age_influence to the functions
+    fig1 = generate_age_attendance_anxiety_plot(age_influence)
+    fig2 = generate_age_anxiety_t1_plot(age_influence)
+    fig3 = generate_age_depression_t1_plot(age_influence)
+    fig4 = generate_age_attendance_satisfaction_plot(age_influence)
+    fig5 = generate_age_achievement_plot(age_influence)
+    return fig1, fig2, fig3, fig4, fig5
 
 if __name__ == '__main__':
     app.run_server(debug=True)
