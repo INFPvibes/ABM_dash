@@ -111,37 +111,41 @@ def generate_plots(csq8_influence, baseline_depression_influence):
     return fig1, fig2, fig3
 
 # --- Generate Anxiety Plot ---
-def generate_anxiety_plot(attendance_influence):
-    model = run_model()
-    
-    csq8_values = [agent.CSQ8 for agent in model.agents]
-    anxiety_change_values = [agent.anxiety_change for agent in model.agents]
+def generate_anxiety_plot(attendance_influence, csq8_influence):
+    num_agents = 50
+    # Generate CSQ8 values clustered around csq8_influence
+    csq8_values = [max(18, min(32, int(np.random.normal(csq8_influence, 3)))) for _ in range(num_agents)]
+    anxiety_change = []
 
-    # Apply the moderation effect of attendance
-    moderated_anxiety_change = []
-    for csq8, anxiety_change in zip(csq8_values, anxiety_change_values):
+    for csq8 in csq8_values:
         if attendance_influence <= 4:
             effect = -3.2783
         else:
-            effect = -3.2783 + (attendance_influence - 4) * 0.5
-        moderated_change = effect * (csq8 - 25) + anxiety_change
-        moderated_anxiety_change.append(moderated_change)
+            effect = -1.5687 + (attendance_influence - 4) * 0.5  # Weaken with increased attendance
+        change = effect * (csq8 - 25) + np.random.normal(0, 10)
+        anxiety_change.append(change)
 
     fig = go.Figure(data=go.Scatter(
         x=csq8_values,
-        y=moderated_anxiety_change,
+        y=anxiety_change,
         mode='markers',
-        marker=dict(opacity=0.7, size=10)
+        marker=dict(
+            color=csq8_values,
+            colorscale='Viridis',
+            colorbar=dict(title='CSQ8 Score'),
+            opacity=0.7,
+            size=10
+        )
     ))
     fig.update_layout(
-        title=f'Moderation Effect of Attendance ({attendance_influence} Sessions) on Anxiety Change',
+        title=f'Attendance ({attendance_influence} Sessions) on CSQ8 and Anxiety Change',
         xaxis_title='CSQ8 Score',
         yaxis_title='Anxiety Change',
         xaxis_range=[17, 33],
-        yaxis_range=[-40, 60]
+        yaxis_range=[-60, 60]
     )
-
     return fig
+
 
 # --- Generate IBD Plot ---
 def generate_ibd_plot(durations):
@@ -250,70 +254,136 @@ def generate_anxiety_plot(average_achievement):
 # --- AGE on attendance, depression, anxiety, and Achievement ---
 def generate_age_attendance_anxiety_plot(age_influence):
     num_agents = 50
-    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 0.5)))) for _ in range(num_agents)]
     attendance = np.random.randint(1, 11, num_agents)
     anxiety_change = []
     
     for age, attend in zip(ages, attendance):
-        if age <= 15:  # Younger participants
-            effect = 7.3124  # Increase in anxiety with attendance
+        if age <= 15:
+            effect = 7.3124
         else:
-            effect = -2.9477  # Older participants
-        
+            effect = -2.9477
         anxiety_change.append(effect * attend + np.random.normal(0, 5))
     
-    fig = go.Figure(data=[go.Scatter3d(x=ages, y=attendance, z=anxiety_change, mode='markers')])
-    fig.update_layout(title='Age as Moderator of Attendance on Anxiety Change',
-                      scene=dict(xaxis_title='Age', yaxis_title='Attendance', zaxis_title='Anxiety Change'))
-    return fig
-
-def generate_age_anxiety_t1_plot(age_influence):
-    num_agents = 50
-    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
-    anxiety_t1 = [40 + 0.323 * age + np.random.normal(0, 5) for age in ages]
-    
-    fig = go.Figure(data=go.Scatter(x=ages, y=anxiety_t1, mode='markers'))
-    fig.update_layout(title='Age vs Anxiety T1 (r = 0.323)',
-                      xaxis_title='Age', yaxis_title='Anxiety T1')
-    return fig
-
-def generate_age_depression_t1_plot(age_influence):
-    num_agents = 50
-    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
-    depression_t1 = [40 + 0.419 * age + np.random.normal(0, 5) for age in ages]
-    
-    fig = go.Figure(data=go.Scatter(x=ages, y=depression_t1, mode='markers'))
-    fig.update_layout(title='Age vs Depression T1 (r = 0.419)',
-                      xaxis_title='Age', yaxis_title='Depression T1')
+    fig = go.Figure(data=go.Scatter(
+        x=ages,
+        y=anxiety_change,
+        mode='markers',
+        marker=dict(
+            color=attendance,
+            colorscale='Viridis',
+            colorbar=dict(title='Attendance'),
+            size=10,
+            opacity=0.7
+        )
+    ))
+    fig.update_layout(
+        title='Age as Moderator of Attendance on Anxiety Change',
+        xaxis_title='Age',
+        yaxis_title='Anxiety Change',
+        xaxis_range=[13, 18],
+        yaxis_range=[min(anxiety_change), max(anxiety_change)]
+    )
     return fig
 
 def generate_age_attendance_satisfaction_plot(age_influence):
     num_agents = 50
-    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 0.5)))) for _ in range(num_agents)]
     attendance = np.random.randint(1, 11, num_agents)
     satisfaction = []
     
     for age, attend in zip(ages, attendance):
-        if age <= 15:  # Younger participants
-            effect = -1.4488  # Negative relationship
+        if age <= 15:
+            effect = -1.4488
         else:
-            effect = 1.8749  # Positive relationship
-            
+            effect = 1.8749
         satisfaction.append(effect * attend + np.random.normal(0, 2))
-        
-    fig = go.Figure(data=[go.Scatter3d(x=ages, y=attendance, z=satisfaction, mode='markers')])
-    fig.update_layout(title='Age Moderating Attendance and Client Satisfaction',
-                      scene=dict(xaxis_title='Age', yaxis_title='Attendance', zaxis_title='Client Satisfaction'))
+    
+    fig = go.Figure(data=go.Scatter(
+        x=ages,
+        y=satisfaction,
+        mode='markers',
+        marker=dict(
+            color=attendance,
+            colorscale='Viridis',
+            colorbar=dict(title='Attendance'),
+            size=10,
+            opacity=0.7
+        )
+    ))
+    fig.update_layout(
+        title='Age Moderating Attendance and Client Satisfaction',
+        xaxis_title='Age',
+        yaxis_title='Client Satisfaction',
+        xaxis_range=[13, 18],
+        yaxis_range=[min(satisfaction), max(satisfaction)]
+    )
+    return fig
+    
+def generate_age_anxiety_t1_plot(age_influence):
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 0.5)))) for _ in range(num_agents)]
+    anxiety_t1 = [40 + 0.323 * age + np.random.normal(0, 5) for age in ages]
+    
+    fig = go.Figure(data=go.Scatter(x=ages, y=anxiety_t1, mode='markers'))
+    fig.update_layout(
+        title='Age vs Anxiety T1 (r = 0.323)',
+        xaxis_title='Age',
+        yaxis_title='Anxiety T1',
+        xaxis_range=[13, 18]
+    )
     return fig
 
 def generate_age_achievement_plot(age_influence):
     num_agents = 50
-    ages = [max(13, min(18, int(np.random.normal(age_influence, 1)))) for _ in range(num_agents)]
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 0.5)))) for _ in range(num_agents)]
     achievements = [10 * age + np.random.normal(0, 20) for age in ages]
     
-    fig = go.Figure(data=go.Scatter(x=ages, y=achievements, mode='markers'))
-    fig.update_layout(title='Age vs Achievement Levels',
-                      xaxis_title='Age', yaxis_title='Achievement')
+    fig = go.Figure(data=go.Scatter(
+        x=ages,
+        y=achievements,
+        mode='markers',
+        marker=dict(
+            color=ages,
+            colorscale='Viridis',
+            colorbar=dict(title='Age'),
+            size=10,
+            opacity=0.7
+        )
+    ))
+    fig.update_layout(
+        title='Age vs Achievement Levels',
+        xaxis_title='Age',
+        yaxis_title='Achievement',
+        xaxis_range=[13, 18],
+        yaxis_range=[min(achievements), max(achievements)]
+    )
+    return fig
+
+def generate_age_depression_t1_plot(age_influence):
+    num_agents = 50
+    ages = [max(13, min(18, int(np.random.normal(age_influence, 0.5)))) for _ in range(num_agents)]
+    depression_t1 = [40 + 0.419 * age + np.random.normal(0, 5) for age in ages]
+    
+    fig = go.Figure(data=go.Scatter(
+        x=ages,
+        y=depression_t1,
+        mode='markers',
+        marker=dict(
+            color=ages,
+            colorscale='Plasma',
+            colorbar=dict(title='Age'),
+            size=10,
+            opacity=0.7
+        )
+    ))
+    fig.update_layout(
+        title='Age vs Depression T1 (r = 0.419)',
+        xaxis_title='Age',
+        yaxis_title='Depression T1',
+        xaxis_range=[13, 18],
+        yaxis_range=[min(depression_t1), max(depression_t1)]
+    )
     return fig
 
 
@@ -341,6 +411,8 @@ app.layout = html.Div([
             html.H1("Agent-Based Model for Anxiety"),
             html.Label("Attendance (Number of Sessions)"),
             dcc.Slider(id='attendance-slider', min=1, max=10, step=1, value=4),
+            html.Label("CSQ8 Influence"),
+            dcc.Slider(id='csq8-slider-anxiety', min=18, max=32, step=1, value=25),  
             dcc.Graph(id='anxiety-plot', style={'width': '60%', 'margin': 'auto'})
         ]),
      
@@ -392,11 +464,13 @@ def update_graph(csq8_influence, baseline_depression_influence):
 
 @app.callback(
     Output('anxiety-plot', 'figure'),
-    Input('attendance-slider', 'value')
+    Input('attendance-slider', 'value'),
+    Input('csq8-slider-anxiety', 'value')  # Add this input
 )
-def update_anxiety_graph(attendance_influence):
-    fig = generate_anxiety_plot(attendance_influence)
+def update_anxiety_graph(attendance_influence, csq8_influence):
+    fig = generate_anxiety_plot(attendance_influence, csq8_influence)  # Pass csq8_influence
     return fig
+
 
 @app.callback(
     [Output('ibd-plot', 'figure'),
