@@ -260,114 +260,113 @@ def generate_anxiety_plot(average_achievement):
 # --- AGE on attendance, depression, anxiety, and Achievement ---
 def generate_age_attendance_anxiety_plot(age_influence):
     num_agents = 50
-    ages = np.random.normal(age_influence, 1, num_agents)  # Continuous age values
+    ages = np.random.normal(age_influence, 0.5, num_agents)  # Tighter clustering
     attendance = np.random.randint(1, 11, num_agents)
     anxiety_change = []
-    
-    for age, attend in zip(ages, attendance):
-        if attend <= 4:
+
+    for attend, age in zip(attendance, ages): #the way attend and age moderates eachother will effect anxiety change
+        if age <= 15: #the x axis won't show age
             effect = 7.3124
         else:
             effect = -2.9477
-        anxiety_change.append(effect * (age - 15) + np.random.normal(0, 5))
-    
+        anxiety_change.append(effect * attend+ np.random.normal(0, 5))
+
     fig = go.Figure(data=go.Scatter(
-        x=ages,
+        x=attendance, #age won't appear as the x axis variable
         y=anxiety_change,
         mode='markers',
         marker=dict(
-            color=attendance,
+            color=ages,
             colorscale='Viridis',
-            colorbar=dict(title='Attendance'),
+            colorbar=dict(title='Age'),
             opacity=0.7,
             size=10
         )
     ))
     fig.update_layout(
-        title='Age as Moderator of Attendance on Anxiety Change',
-        xaxis_title='Age',
+        title='Moderation Effect of Age on Attendence and Anxiety Change',
+        xaxis_title='Attendance',
         yaxis_title='Anxiety Change',
-        xaxis_range=[age_influence-3, age_influence+3],
+        xaxis_range=[0, 11],
         yaxis_range=[min(anxiety_change), max(anxiety_change)]
     )
     return fig
 
 def generate_age_anxiety_t1_plot(age_influence):
     num_agents = 50
-    ages = np.random.normal(age_influence, 1, num_agents)  # Continuous age values
+    ages = np.random.normal(age_influence, 0.5, num_agents)  # Tighter clustering
     anxiety_t1 = [40 + 0.323 * age + np.random.normal(0, 5) for age in ages]
-    
+
     fig = go.Figure(data=go.Scatter(x=ages, y=anxiety_t1, mode='markers'))
     fig.update_layout(
         title='Age vs Anxiety T1 (r = 0.323)',
         xaxis_title='Age',
         yaxis_title='Anxiety T1',
-        xaxis_range=[age_influence-3, age_influence+3]
+        xaxis_range=[age_influence - 3, age_influence + 3]
     )
     return fig
 
 def generate_age_depression_t1_plot(age_influence):
     num_agents = 50
-    ages = np.random.normal(age_influence, 1, num_agents)  # Continuous age values
+    ages = np.random.normal(age_influence, 0.5, num_agents)  # Tighter clustering
     depression_t1 = [40 + 0.419 * age + np.random.normal(0, 5) for age in ages]
-    
+
     fig = go.Figure(data=go.Scatter(x=ages, y=depression_t1, mode='markers'))
     fig.update_layout(
         title='Age vs Depression T1 (r = 0.419)',
         xaxis_title='Age',
         yaxis_title='Depression T1',
-        xaxis_range=[age_influence-3, age_influence+3]
+        xaxis_range=[age_influence - 3, age_influence + 3]
     )
     return fig
 
 def generate_age_attendance_satisfaction_plot(age_influence):
     num_agents = 50
-    ages = np.random.normal(age_influence, 1, num_agents)  # Continuous age values
+    ages = np.random.normal(age_influence, 0.5, num_agents)  # Tighter clustering
     attendance = np.random.randint(1, 11, num_agents)
     satisfaction = []
-    
+
     for age, attend in zip(ages, attendance):
-        if attend <= 4:
+        if attend <= 4: #age will no longer appear on the plot
             effect = -1.4488
         else:
             effect = 1.8749
-        satisfaction.append(effect * (age - 15) + np.random.normal(0, 2))
-    
+        satisfaction.append(effect * attend + np.random.normal(0, 2)) #attend influences the satisfaction
+
     fig = go.Figure(data=go.Scatter(
-        x=ages,
+        x=attendance, #age won't appear on the plot
         y=satisfaction,
         mode='markers',
         marker=dict(
-            color=attendance,
+            color=ages,
             colorscale='Viridis',
-            colorbar=dict(title='Attendance'),
+            colorbar=dict(title='Age'),
             opacity=0.7,
             size=10
         )
     ))
     fig.update_layout(
-        title='Age Moderating Attendance and Client Satisfaction',
-        xaxis_title='Age',
+        title='Moderation Effect of Age on Attendence and Client Satisfaction',
+        xaxis_title='Attendance',
         yaxis_title='Client Satisfaction',
-        xaxis_range=[age_influence-3, age_influence+3],
+        xaxis_range=[0, 11],
         yaxis_range=[min(satisfaction), max(satisfaction)]
     )
     return fig
 
 def generate_age_achievement_plot(age_influence):
     num_agents = 50
-    ages = np.random.normal(age_influence, 1, num_agents)  # Continuous age values
+    ages = np.random.normal(age_influence, 0.5, num_agents)  # Tighter clustering
     achievements = [10 * age + np.random.normal(0, 20) for age in ages]
-    
+
     fig = go.Figure(data=go.Scatter(x=ages, y=achievements, mode='markers'))
     fig.update_layout(
         title='Age vs Achievement Levels',
         xaxis_title='Age',
         yaxis_title='Achievement',
-        xaxis_range=[age_influence-3, age_influence+3]
+        xaxis_range=[age_influence - 3, age_influence + 3]
     )
     return fig
-
 
 # --- Dash App ---
 app = dash.Dash(__name__)
